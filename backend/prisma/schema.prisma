@@ -1,0 +1,403 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+  FINANCE
+  MANAGER
+}
+
+enum ProductType {
+  BAHAN_MENTAH
+  BARANG_JADI
+}
+
+enum OrderStatus {
+  DRAFT
+  DIPROSES
+  SELESAI
+  DIKIRIM
+  SELESAI_DIKIRIM
+  DIBATALKAN
+}
+
+enum PaymentStatus {
+  BELUM_DIBAYAR
+  SEBAGIAN
+  LUNAS
+}
+
+enum PurchaseStatus {
+  DRAFT
+  DIPESAN
+  DITERIMA
+  SELESAI
+  DIBATALKAN
+}
+
+enum DocumentStatus {
+  DRAFT
+  AKTIF
+  SELESAI
+  DIBATALKAN
+}
+
+enum LetterType {
+  BIASA
+  PENTING
+  RAHASIA
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  username  String   @unique
+  email     String?  @unique
+  password  String
+  role      UserRole @default(STAFF)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders      Order[]
+  purchases   Purchase[]
+  suratJalans SuratJalan[]
+  invoices    Invoice[]
+  payments    Payment[]
+  incoming    IncomingLetter[]
+  outgoing    OutgoingLetter[]
+  documents   Document[]
+}
+
+model Customer {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  name        String
+  address     String?
+  city        String?
+  phone       String?
+  email       String?
+  contactName String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orders   Order[]
+  invoices Invoice[]
+}
+
+model Supplier {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  name        String
+  address     String?
+  city        String?
+  phone       String?
+  email       String?
+  contactName String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  purchases Purchase[]
+}
+
+model Product {
+  id           Int         @id @default(autoincrement())
+  code         String      @unique
+  name         String
+  type         ProductType
+  unit         String
+  stock        Decimal     @default(0) @db.Decimal(15, 2)
+  minimumStock Decimal     @default(0) @db.Decimal(15, 2)
+  description  String?
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  orderDetails      OrderDetail[]
+  purchaseDetails   PurchaseDetail[]
+  suratJalanDetails SuratJalanDetail[]
+  invoiceDetails    InvoiceDetail[]
+}
+
+model Driver {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String?
+  licenseNo String?
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  suratJalans SuratJalan[]
+}
+
+model Vehicle {
+  id          Int      @id @default(autoincrement())
+  plateNumber String   @unique
+  type        String?
+  brand       String?
+  model       String?
+  year        Int?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  suratJalans SuratJalan[]
+}
+
+model Order {
+  id              Int         @id @default(autoincrement())
+  orderNumber     String      @unique
+  orderDate       DateTime
+  customerId      Int
+  poNumber        String?
+  deliveryAddress String?
+  notes           String?
+  status          OrderStatus @default(DRAFT)
+  createdById     Int
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  customer    Customer      @relation(fields: [customerId], references: [id])
+  createdBy   User          @relation(fields: [createdById], references: [id])
+  details     OrderDetail[]
+  suratJalans SuratJalan[]
+  invoices    Invoice[]
+
+  @@index([customerId])
+  @@index([createdById])
+  @@index([orderDate])
+}
+
+model OrderDetail {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  quantity  Decimal  @db.Decimal(15, 2)
+  unitPrice Decimal? @db.Decimal(15, 2)
+  notes     String?
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Purchase {
+  id             Int            @id @default(autoincrement())
+  purchaseNumber String         @unique
+  purchaseDate   DateTime
+  supplierId     Int
+  status         PurchaseStatus @default(DRAFT)
+  paymentStatus  PaymentStatus  @default(BELUM_DIBAYAR)
+  notes          String?
+  createdById    Int
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  supplier  Supplier         @relation(fields: [supplierId], references: [id])
+  createdBy User             @relation(fields: [createdById], references: [id])
+  details   PurchaseDetail[]
+
+  @@index([supplierId])
+  @@index([createdById])
+  @@index([purchaseDate])
+}
+
+model PurchaseDetail {
+  id         Int     @id @default(autoincrement())
+  purchaseId Int
+  productId  Int
+  quantity   Decimal @db.Decimal(15, 2)
+  unitPrice  Decimal @db.Decimal(15, 2)
+  notes      String?
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id])
+
+  @@index([purchaseId])
+  @@index([productId])
+}
+
+model SuratJalan {
+  id              Int       @id @default(autoincrement())
+  number          String    @unique
+  date            DateTime
+  orderId         Int?
+  driverId        Int?
+  vehicleId       Int?
+  recipientName   String?
+  deliveryAddress String?
+  reference       String?
+  preparedBy      String?
+  senderInfo      String?
+  receivedBy      String?
+  receivedDate    DateTime?
+  notes           String?
+  createdById     Int
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  order     Order?             @relation(fields: [orderId], references: [id])
+  driver    Driver?            @relation(fields: [driverId], references: [id])
+  vehicle   Vehicle?           @relation(fields: [vehicleId], references: [id])
+  createdBy User               @relation(fields: [createdById], references: [id])
+  details   SuratJalanDetail[]
+
+  @@index([orderId])
+  @@index([driverId])
+  @@index([vehicleId])
+  @@index([createdById])
+  @@index([date])
+}
+
+model SuratJalanDetail {
+  id           Int     @id @default(autoincrement())
+  suratJalanId Int
+  productId    Int
+  quantity     Decimal @db.Decimal(15, 2)
+  unit         String
+  notes        String?
+
+  suratJalan SuratJalan @relation(fields: [suratJalanId], references: [id], onDelete: Cascade)
+  product    Product    @relation(fields: [productId], references: [id])
+
+  @@index([suratJalanId])
+  @@index([productId])
+}
+
+model Invoice {
+  id            Int           @id @default(autoincrement())
+  invoiceNumber String        @unique
+  invoiceDate   DateTime
+  dueDate       DateTime?
+  customerId    Int
+  orderId       Int?
+  subtotal      Decimal       @db.Decimal(15, 2)
+  discount      Decimal       @default(0) @db.Decimal(15, 2)
+  tax           Decimal       @default(0) @db.Decimal(15, 2)
+  total         Decimal       @db.Decimal(15, 2)
+  paymentStatus PaymentStatus @default(BELUM_DIBAYAR)
+  notes         String?
+  createdById   Int
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  customer  Customer        @relation(fields: [customerId], references: [id])
+  order     Order?          @relation(fields: [orderId], references: [id])
+  createdBy User            @relation(fields: [createdById], references: [id])
+  details   InvoiceDetail[]
+  payments  Payment[]
+
+  @@index([customerId])
+  @@index([orderId])
+  @@index([createdById])
+  @@index([invoiceDate])
+}
+
+model InvoiceDetail {
+  id          Int     @id @default(autoincrement())
+  invoiceId   Int
+  productId   Int
+  description String?
+  quantity    Decimal @db.Decimal(15, 2)
+  unitPrice   Decimal @db.Decimal(15, 2)
+  total       Decimal @db.Decimal(15, 2)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([invoiceId])
+  @@index([productId])
+}
+
+model Payment {
+  id          Int      @id @default(autoincrement())
+  invoiceId   Int
+  paymentDate DateTime
+  amount      Decimal  @db.Decimal(15, 2)
+  method      String?
+  reference   String?
+  notes       String?
+  createdById Int
+  createdAt   DateTime @default(now())
+
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  createdBy User    @relation(fields: [createdById], references: [id])
+
+  @@index([invoiceId])
+  @@index([createdById])
+  @@index([paymentDate])
+}
+
+model IncomingLetter {
+  id           Int            @id @default(autoincrement())
+  number       String
+  date         DateTime
+  sender       String
+  subject      String
+  type         LetterType     @default(BIASA)
+  status       DocumentStatus @default(AKTIF)
+  receivedDate DateTime?
+  description  String?
+  filePath     String?
+  createdById  Int
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@index([date])
+  @@index([createdById])
+}
+
+model OutgoingLetter {
+  id          Int            @id @default(autoincrement())
+  number      String         @unique
+  date        DateTime
+  recipient   String
+  subject     String
+  type        LetterType     @default(BIASA)
+  status      DocumentStatus @default(AKTIF)
+  description String?
+  filePath    String?
+  createdById Int
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@index([date])
+  @@index([createdById])
+}
+
+model Document {
+  id             Int            @id @default(autoincrement())
+  documentNumber String?
+  title          String
+  category       String
+  documentDate   DateTime?
+  description    String?
+  filePath       String?
+  status         DocumentStatus @default(AKTIF)
+  createdById    Int
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@index([category])
+  @@index([documentDate])
+  @@index([createdById])
+}
