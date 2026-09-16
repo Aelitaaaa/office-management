@@ -59,7 +59,7 @@ model User {
   id        Int      @id @default(autoincrement())
   name      String
   username  String   @unique
-  email     String?  @unique
+  email     String   @unique
   password  String
   role      UserRole @default(STAFF)
   isActive  Boolean  @default(true)
@@ -77,34 +77,29 @@ model User {
 }
 
 model Customer {
-  id          Int      @id @default(autoincrement())
-  code        String   @unique
-  name        String
-  address     String?
-  city        String?
-  phone       String?
-  email       String?
-  contactName String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  orders   Order[]
-  invoices Invoice[]
+  orders Order[]
 }
 
 model Supplier {
-  id          Int      @id @default(autoincrement())
-  code        String   @unique
-  name        String
-  address     String?
-  city        String?
-  phone       String?
-  email       String?
-  contactName String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   purchases Purchase[]
 }
@@ -143,12 +138,13 @@ model Driver {
 
 model Vehicle {
   id          Int      @id @default(autoincrement())
-  plateNumber String   @unique
-  type        String?
-  brand       String?
+  nomorPolisi String   @unique
+  jenis       String
+  merek       String?
   model       String?
-  year        Int?
-  isActive    Boolean  @default(true)
+  warna       String?
+  tahun       Int?
+  aktif       Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -156,63 +152,51 @@ model Vehicle {
 }
 
 model Order {
-  id              Int         @id @default(autoincrement())
-  orderNumber     String      @unique
-  orderDate       DateTime
-  customerId      Int
-  poNumber        String?
-  deliveryAddress String?
-  notes           String?
-  status          OrderStatus @default(DRAFT)
-  createdById     Int
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id          Int         @id @default(autoincrement())
+  orderNumber String      @unique
+  customerId  Int
+  orderDate   DateTime    @default(now())
+  status      OrderStatus @default(DRAFT)
+  notes       String?
+  total       Decimal     @default(0) @db.Decimal(15, 2)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-  customer    Customer      @relation(fields: [customerId], references: [id])
-  createdBy   User          @relation(fields: [createdById], references: [id])
-  details     OrderDetail[]
-  suratJalans SuratJalan[]
-  invoices    Invoice[]
-
-  @@index([customerId])
-  @@index([createdById])
-  @@index([orderDate])
+  customer   Customer      @relation(fields: [customerId], references: [id])
+  details    OrderDetail[]
+  suratJalan SuratJalan?
+  invoice    Invoice?
+  user       User?         @relation(fields: [userId], references: [id])
+  userId     Int?
 }
 
 model OrderDetail {
-  id        Int      @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   orderId   Int
   productId Int
-  quantity  Decimal  @db.Decimal(15, 2)
-  unitPrice Decimal? @db.Decimal(15, 2)
-  notes     String?
+  quantity  Decimal @db.Decimal(15, 2)
+  price     Decimal @db.Decimal(15, 2)
+  subtotal  Decimal @db.Decimal(15, 2)
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
-
-  @@index([orderId])
-  @@index([productId])
 }
 
 model Purchase {
   id             Int            @id @default(autoincrement())
   purchaseNumber String         @unique
-  purchaseDate   DateTime
   supplierId     Int
+  userId         Int
+  purchaseDate   DateTime       @default(now())
   status         PurchaseStatus @default(DRAFT)
-  paymentStatus  PaymentStatus  @default(BELUM_DIBAYAR)
   notes          String?
-  createdById    Int
+  total          Decimal        @default(0) @db.Decimal(15, 2)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
-  supplier  Supplier         @relation(fields: [supplierId], references: [id])
-  createdBy User             @relation(fields: [createdById], references: [id])
-  details   PurchaseDetail[]
-
-  @@index([supplierId])
-  @@index([createdById])
-  @@index([purchaseDate])
+  supplier Supplier         @relation(fields: [supplierId], references: [id])
+  user     User             @relation(fields: [userId], references: [id])
+  details  PurchaseDetail[]
 }
 
 model PurchaseDetail {
@@ -220,46 +204,32 @@ model PurchaseDetail {
   purchaseId Int
   productId  Int
   quantity   Decimal @db.Decimal(15, 2)
-  unitPrice  Decimal @db.Decimal(15, 2)
-  notes      String?
+  price      Decimal @db.Decimal(15, 2)
+  subtotal   Decimal @db.Decimal(15, 2)
 
   purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
   product  Product  @relation(fields: [productId], references: [id])
-
-  @@index([purchaseId])
-  @@index([productId])
 }
 
 model SuratJalan {
-  id              Int       @id @default(autoincrement())
-  number          String    @unique
-  date            DateTime
-  orderId         Int?
-  driverId        Int?
-  vehicleId       Int?
-  recipientName   String?
-  deliveryAddress String?
-  reference       String?
-  preparedBy      String?
-  senderInfo      String?
-  receivedBy      String?
-  receivedDate    DateTime?
-  notes           String?
-  createdById     Int
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id           Int      @id @default(autoincrement())
+  nomorSurat   String   @unique
+  orderId      Int      @unique
+  userId       Int
+  driverId     Int?
+  vehicleId    Int?
+  tanggalKirim DateTime @default(now())
+  tujuan       String?
+  penerima     String?
+  keterangan   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  order     Order?             @relation(fields: [orderId], references: [id])
-  driver    Driver?            @relation(fields: [driverId], references: [id])
-  vehicle   Vehicle?           @relation(fields: [vehicleId], references: [id])
-  createdBy User               @relation(fields: [createdById], references: [id])
-  details   SuratJalanDetail[]
-
-  @@index([orderId])
-  @@index([driverId])
-  @@index([vehicleId])
-  @@index([createdById])
-  @@index([date])
+  order   Order              @relation(fields: [orderId], references: [id])
+  user    User               @relation(fields: [userId], references: [id])
+  driver  Driver?            @relation(fields: [driverId], references: [id])
+  vehicle Vehicle?           @relation(fields: [vehicleId], references: [id])
+  details SuratJalanDetail[]
 }
 
 model SuratJalanDetail {
@@ -267,137 +237,105 @@ model SuratJalanDetail {
   suratJalanId Int
   productId    Int
   quantity     Decimal @db.Decimal(15, 2)
-  unit         String
-  notes        String?
+  keterangan   String?
 
   suratJalan SuratJalan @relation(fields: [suratJalanId], references: [id], onDelete: Cascade)
   product    Product    @relation(fields: [productId], references: [id])
-
-  @@index([suratJalanId])
-  @@index([productId])
 }
 
 model Invoice {
-  id            Int           @id @default(autoincrement())
-  invoiceNumber String        @unique
-  invoiceDate   DateTime
-  dueDate       DateTime?
-  customerId    Int
-  orderId       Int?
-  subtotal      Decimal       @db.Decimal(15, 2)
-  discount      Decimal       @default(0) @db.Decimal(15, 2)
-  tax           Decimal       @default(0) @db.Decimal(15, 2)
-  total         Decimal       @db.Decimal(15, 2)
-  paymentStatus PaymentStatus @default(BELUM_DIBAYAR)
-  notes         String?
-  createdById   Int
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id           Int           @id @default(autoincrement())
+  nomorInvoice String        @unique
+  orderId      Int           @unique
+  userId       Int
+  tanggal      DateTime      @default(now())
+  jatuhTempo   DateTime?
+  subtotal     Decimal       @default(0) @db.Decimal(15, 2)
+  diskon       Decimal       @default(0) @db.Decimal(15, 2)
+  pajak        Decimal       @default(0) @db.Decimal(15, 2)
+  total        Decimal       @default(0) @db.Decimal(15, 2)
+  statusBayar  PaymentStatus @default(BELUM_DIBAYAR)
+  keterangan   String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
-  customer  Customer        @relation(fields: [customerId], references: [id])
-  order     Order?          @relation(fields: [orderId], references: [id])
-  createdBy User            @relation(fields: [createdById], references: [id])
-  details   InvoiceDetail[]
-  payments  Payment[]
-
-  @@index([customerId])
-  @@index([orderId])
-  @@index([createdById])
-  @@index([invoiceDate])
+  order    Order           @relation(fields: [orderId], references: [id])
+  user     User            @relation(fields: [userId], references: [id])
+  details  InvoiceDetail[]
+  payments Payment[]
 }
 
 model InvoiceDetail {
-  id          Int     @id @default(autoincrement())
-  invoiceId   Int
-  productId   Int
-  description String?
-  quantity    Decimal @db.Decimal(15, 2)
-  unitPrice   Decimal @db.Decimal(15, 2)
-  total       Decimal @db.Decimal(15, 2)
+  id        Int     @id @default(autoincrement())
+  invoiceId Int
+  productId Int
+  quantity  Decimal @db.Decimal(15, 2)
+  price     Decimal @db.Decimal(15, 2)
+  subtotal  Decimal @db.Decimal(15, 2)
 
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
-
-  @@index([invoiceId])
-  @@index([productId])
 }
 
 model Payment {
-  id          Int      @id @default(autoincrement())
-  invoiceId   Int
-  paymentDate DateTime
-  amount      Decimal  @db.Decimal(15, 2)
-  method      String?
-  reference   String?
-  notes       String?
-  createdById Int
-  createdAt   DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  invoiceId    Int
+  userId       Int
+  tanggalBayar DateTime @default(now())
+  jumlah       Decimal  @db.Decimal(15, 2)
+  metode       String
+  keterangan   String?
+  createdAt    DateTime @default(now())
 
-  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  createdBy User    @relation(fields: [createdById], references: [id])
-
-  @@index([invoiceId])
-  @@index([createdById])
-  @@index([paymentDate])
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
 }
 
 model IncomingLetter {
-  id           Int            @id @default(autoincrement())
-  number       String
-  date         DateTime
-  sender       String
-  subject      String
-  type         LetterType     @default(BIASA)
-  status       DocumentStatus @default(AKTIF)
-  receivedDate DateTime?
-  description  String?
-  filePath     String?
-  createdById  Int
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  id            Int        @id @default(autoincrement())
+  nomorSurat    String     @unique
+  tanggalSurat  DateTime
+  tanggalTerima DateTime   @default(now())
+  pengirim      String
+  perihal       String
+  jenis         LetterType @default(BIASA)
+  filePath      String?
+  keterangan    String?
+  userId        Int
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
-  createdBy User @relation(fields: [createdById], references: [id])
-
-  @@index([date])
-  @@index([createdById])
+  user User @relation(fields: [userId], references: [id])
 }
 
 model OutgoingLetter {
-  id          Int            @id @default(autoincrement())
-  number      String         @unique
-  date        DateTime
-  recipient   String
-  subject     String
-  type        LetterType     @default(BIASA)
-  status      DocumentStatus @default(AKTIF)
-  description String?
-  filePath    String?
-  createdById Int
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id           Int        @id @default(autoincrement())
+  nomorSurat   String     @unique
+  tanggalSurat DateTime   @default(now())
+  penerima     String
+  perihal      String
+  jenis        LetterType @default(BIASA)
+  filePath     String?
+  keterangan   String?
+  userId       Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
-  createdBy User @relation(fields: [createdById], references: [id])
-
-  @@index([date])
-  @@index([createdById])
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Document {
-  id             Int            @id @default(autoincrement())
-  documentNumber String?
-  title          String
-  category       String
-  documentDate   DateTime?
-  description    String?
-  filePath       String?
-  status         DocumentStatus @default(AKTIF)
-  createdById    Int
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id           Int            @id @default(autoincrement())
+  nomorDokumen String?
+  nama         String
+  kategori     String
+  tanggal      DateTime       @default(now())
+  filePath     String?
+  status       DocumentStatus @default(DRAFT)
+  keterangan   String?
+  userId       Int
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
-  createdBy User @relation(fields: [createdById], references: [id])
-
-  @@index([category])
-  @@index([documentDate])
-  @@index([createdById])
+  user User @relation(fields: [userId], references: [id])
 }
