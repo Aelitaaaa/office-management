@@ -34,6 +34,23 @@ enum PaymentStatus {
   LUNAS
 }
 
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  VIRTUAL_ACCOUNT
+  QRIS
+  EWALLET
+  OTHER
+}
+
+enum PaymentTransactionStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  CANCELLED
+}
+
 enum PurchaseStatus {
   DRAFT
   DIPESAN
@@ -56,50 +73,58 @@ enum LetterType {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  username  String   @unique
-  email     String   @unique
-  password  String
-  role      UserRole @default(STAFF)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int       @id @default(autoincrement())
+  name        String
+  username    String    @unique
+  email       String    @unique
+  password    String
+  role        UserRole  @default(STAFF)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  deletedById Int?
 
-  orders      Order[]
-  purchases   Purchase[]
-  suratJalans SuratJalan[]
-  invoices    Invoice[]
-  payments    Payment[]
-  incoming    IncomingLetter[]
-  outgoing    OutgoingLetter[]
-  documents   Document[]
+  orders        Order[]
+  purchases     Purchase[]
+  suratJalans   SuratJalan[]
+  invoices      Invoice[]
+  payments      Payment[]
+  incoming      IncomingLetter[]
+  outgoing      OutgoingLetter[]
+  documents     Document[]
+  activityLogs  ActivityLog[]
+  announcements Announcement[]
 }
 
 model Customer {
-  id        Int      @id @default(autoincrement())
-  code      String   @unique
-  name      String
-  phone     String?
-  email     String?
-  address   String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int       @id @default(autoincrement())
+  code        String    @unique
+  name        String
+  phone       String?
+  email       String?
+  address     String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  deletedById Int?
 
   orders Order[]
 }
 
 model Supplier {
-  id        Int      @id @default(autoincrement())
-  code      String   @unique
-  name      String
-  phone     String?
-  email     String?
-  address   String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int       @id @default(autoincrement())
+  code        String    @unique
+  name        String
+  phone       String?
+  email       String?
+  address     String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  deletedById Int?
 
   purchases Purchase[]
 }
@@ -116,6 +141,8 @@ model Product {
   isActive     Boolean     @default(true)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
+  deletedAt    DateTime?
+  deletedById  Int?
 
   orderDetails      OrderDetail[]
   purchaseDetails   PurchaseDetail[]
@@ -124,29 +151,33 @@ model Product {
 }
 
 model Driver {
-  id        Int      @id @default(autoincrement())
-  name      String
-  phone     String?
-  licenseNo String?
-  address   String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int       @id @default(autoincrement())
+  name        String
+  phone       String?
+  licenseNo   String?
+  address     String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  deletedById Int?
 
   suratJalans SuratJalan[]
 }
 
 model Vehicle {
-  id          Int      @id @default(autoincrement())
-  nomorPolisi String   @unique
+  id          Int       @id @default(autoincrement())
+  nomorPolisi String    @unique
   jenis       String
   merek       String?
   model       String?
   warna       String?
   tahun       Int?
-  aktif       Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  aktif       Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  deletedById Int?
 
   suratJalans SuratJalan[]
 }
@@ -155,19 +186,21 @@ model Order {
   id          Int         @id @default(autoincrement())
   orderNumber String      @unique
   customerId  Int
+  userId      Int?
   orderDate   DateTime    @default(now())
   status      OrderStatus @default(DRAFT)
   notes       String?
   total       Decimal     @default(0) @db.Decimal(15, 2)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+  deletedById Int?
 
   customer   Customer      @relation(fields: [customerId], references: [id])
+  user       User?         @relation(fields: [userId], references: [id])
   details    OrderDetail[]
   suratJalan SuratJalan?
   invoice    Invoice?
-  user       User?         @relation(fields: [userId], references: [id])
-  userId     Int?
 }
 
 model OrderDetail {
@@ -193,6 +226,8 @@ model Purchase {
   total          Decimal        @default(0) @db.Decimal(15, 2)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
+  deletedAt      DateTime?
+  deletedById    Int?
 
   supplier Supplier         @relation(fields: [supplierId], references: [id])
   user     User             @relation(fields: [userId], references: [id])
@@ -212,23 +247,27 @@ model PurchaseDetail {
 }
 
 model SuratJalan {
-  id           Int      @id @default(autoincrement())
-  nomorSurat   String   @unique
-  orderId      Int      @unique
+  id           Int       @id @default(autoincrement())
+  nomorSurat   String    @unique
+  orderId      Int       @unique
   userId       Int
   driverId     Int?
   vehicleId    Int?
-  tanggalKirim DateTime @default(now())
+  tanggalKirim DateTime  @default(now())
+  referensiPO  String?
   tujuan       String?
+  alamat       String?
   penerima     String?
-  keterangan   String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  catatan      String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  deletedById  Int?
 
   order   Order              @relation(fields: [orderId], references: [id])
   user    User               @relation(fields: [userId], references: [id])
-  driver  Driver?            @relation(fields: [driverId], references: [id])
-  vehicle Vehicle?           @relation(fields: [vehicleId], references: [id])
+  driver  Driver?            @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  vehicle Vehicle?           @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
   details SuratJalanDetail[]
 }
 
@@ -258,6 +297,8 @@ model Invoice {
   keterangan   String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
+  deletedById  Int?
 
   order    Order           @relation(fields: [orderId], references: [id])
   user     User            @relation(fields: [userId], references: [id])
@@ -278,17 +319,22 @@ model InvoiceDetail {
 }
 
 model Payment {
-  id           Int      @id @default(autoincrement())
+  id           Int                      @id @default(autoincrement())
   invoiceId    Int
-  userId       Int
-  tanggalBayar DateTime @default(now())
-  jumlah       Decimal  @db.Decimal(15, 2)
-  metode       String
+  userId       Int?
+  externalId   String?                  @unique
+  provider     String?
+  metode       PaymentMethod
+  status       PaymentTransactionStatus @default(PENDING)
+  jumlah       Decimal                  @db.Decimal(15, 2)
+  tanggalBayar DateTime?
+  expiredAt    DateTime?
   keterangan   String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
 
   invoice Invoice @relation(fields: [invoiceId], references: [id])
-  user    User    @relation(fields: [userId], references: [id])
+  user    User?   @relation(fields: [userId], references: [id])
 }
 
 model IncomingLetter {
@@ -304,6 +350,8 @@ model IncomingLetter {
   userId        Int
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
+  deletedAt     DateTime?
+  deletedById   Int?
 
   user User @relation(fields: [userId], references: [id])
 }
@@ -320,6 +368,8 @@ model OutgoingLetter {
   userId       Int
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+  deletedById  Int?
 
   user User @relation(fields: [userId], references: [id])
 }
@@ -336,6 +386,42 @@ model Document {
   userId       Int
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
+  deletedAt    DateTime?
+  deletedById  Int?
 
   user User @relation(fields: [userId], references: [id])
+}
+
+model ActivityLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  action      String
+  module      String
+  description String
+  entityId    Int?
+  createdAt   DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([module])
+  @@index([createdAt])
+}
+
+model Announcement {
+  id        Int       @id @default(autoincrement())
+  title     String
+  content   String
+  isActive  Boolean   @default(true)
+  userId    Int?
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([isActive])
+  @@index([startDate])
+  @@index([createdAt])
 }

@@ -5,12 +5,14 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  MaxLength,
   Min,
 } from 'class-validator';
 
 export class CreateProductDto {
   @IsString()
   @IsNotEmpty()
+  @MaxLength(150)
   name: string;
 
   @IsIn(['BAHAN_MENTAH', 'BARANG_JADI'])
@@ -18,6 +20,7 @@ export class CreateProductDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(30)
   unit: string;
 
   @IsOptional()
@@ -32,6 +35,7 @@ export class CreateProductDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(1000)
   description?: string;
 
   @IsOptional()

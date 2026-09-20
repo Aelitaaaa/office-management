@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  MaxLength,
   Min,
 } from 'class-validator';
 
@@ -12,6 +13,7 @@ export class UpdateProductDto {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
+  @MaxLength(150)
   name?: string;
 
   @IsOptional()
@@ -21,6 +23,7 @@ export class UpdateProductDto {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
+  @MaxLength(30)
   unit?: string;
 
   @IsOptional()
@@ -35,6 +38,7 @@ export class UpdateProductDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(1000)
   description?: string;
 
   @IsOptional()

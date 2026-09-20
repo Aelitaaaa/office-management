@@ -1,7 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
@@ -10,19 +13,45 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async login(username: string, password: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { username },
-    });
+  async login(
+    username: string,
+    password: string,
+  ) {
+    const user =
+      await this.prisma.user.findUnique({
+        where: {
+          username,
+        },
+      });
 
     if (!user) {
-      throw new UnauthorizedException('Username atau password salah');
+      throw new UnauthorizedException(
+        'Username atau password salah',
+      );
     }
 
-    const passwordValid = await bcrypt.compare(password, user.password);
+    if (user.deletedAt) {
+      throw new UnauthorizedException(
+        'Akun sudah tidak tersedia',
+      );
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException(
+        'Akun sedang dinonaktifkan',
+      );
+    }
+
+    const passwordValid =
+      await bcrypt.compare(
+        password,
+        user.password,
+      );
 
     if (!passwordValid) {
-      throw new UnauthorizedException('Username atau password salah');
+      throw new UnauthorizedException(
+        'Username atau password salah',
+      );
     }
 
     const payload = {
@@ -32,7 +61,8 @@ export class AuthService {
     };
 
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token:
+        this.jwtService.sign(payload),
       user: {
         id: user.id,
         name: user.name,
